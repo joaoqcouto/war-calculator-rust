@@ -73,6 +73,25 @@ impl Territory {
         return Territory{ troops: ntroops, dice: Dice::new() };
     }
 
+    // one attack iteration function
+    fn single_attack(&mut self, attacked: &mut Territory) {
+        // both sides roll dice (attacker runs one less than the amount of troops)
+        self.dice.roll(self.troops - 1);
+        attacked.dice.roll(attacked.troops);
+
+        // only compare as many dices as the side which rolled the least dices
+        // max value to compare = 3
+        let amount_compared:i32 = if self.troops-1 > attacked.troops {
+            if attacked.troops > 3 {3} else {attacked.troops}
+        } else {
+            if self.troops-1 > 3 {3} else {self.troops-1}
+        };
+
+        let (larger, equal, smaller) = self.dice.compare(&attacked.dice, amount_compared as usize);
+        self.troops -= smaller+equal;
+        attacked.troops -= larger;
+    }
+
     /*
         single attack function:
         - attacked (attacked territory)
@@ -83,21 +102,8 @@ impl Territory {
     */
     pub fn attack(&mut self, attacked: &mut Territory, threshold: i32) -> bool {
         while self.troops > threshold && self.troops > 1 && attacked.troops > 0 {
-            // both sides roll dice (attacker runs one less than the amount of troops)
-            self.dice.roll(self.troops - 1);
-            attacked.dice.roll(attacked.troops);
-
-            // only compare as many dices as the side which rolled the least dices
-            // max value to compare = 3
-            let amount_compared:i32 = if self.troops-1 > attacked.troops {
-                if attacked.troops > 3 {3} else {attacked.troops}
-            } else {
-                if self.troops-1 > 3 {3} else {self.troops-1}
-            };
-
-            let (larger, equal, smaller) = self.dice.compare(&attacked.dice, amount_compared as usize);
-            self.troops -= smaller+equal;
-            attacked.troops -= larger;
+            // run attacks
+            self.single_attack(attacked);
         }
 
         if attacked.troops > 0 {
@@ -154,7 +160,7 @@ impl Territory {
         - simulations (number of simulations made)
 
         > simulates for every combination of attacks and defenses (with no threshold)
-        > returns matrix (row = no. of attackers; column = no. of defenders)
+        > returns matrix (row = increasing attackers; column = increasing defenders)
     */
     pub fn gen_matrix(size:usize, simulations: i32) -> Vec<Vec<f32>> {
         // end matrix
@@ -175,6 +181,53 @@ impl Territory {
                 row[j] = win_rate;
             }
             matrix.push(row);
+        }
+
+        return matrix;
+    }
+
+    /*
+        fast matrix generator function:
+        - attacked (attacked territory)
+        - size (size of generated matrix)
+        - simulations (number of simulations made)
+
+        > simulates for every combination of attacks and defenses
+        > uses matrix for memoing values for smaller simulations, speeding up process for large simulation values
+        > returns matrix (row = increasing attackers; column = increasing defenders)
+    */
+    pub fn gen_matrix_fast(size:usize, simulations: i32) -> Vec<Vec<f32>> {
+        // end matrix
+        let mut matrix:Vec<Vec<f32>> = Vec::with_capacity(size);
+        let mut attack_territory: Territory = Territory::new(0);
+        let mut defense_territory: Territory = Territory::new(0);
+
+        // filling up matrix with zeroes
+        for _ in 0..size {
+            let row:Vec<f32> = vec![0.0;size];
+            matrix.push(row);
+        }
+
+        // loop of defenders (1 -> size defenders simulated)
+        for i in 0..size {
+            // loop of attackers (1 -> size attackers simulated)
+            for j in 1..size {
+
+                // fast simulation loop (uses matrix as cache)
+                let mut wins: f32 = 0.0;
+                for _ in 0..simulations {
+                    defense_territory.troops = (i as i32)+1;
+                    attack_territory.troops = (j as i32)+1;
+        
+                    // simulating attack, getting memo values
+                    attack_territory.single_attack(&mut defense_territory);
+                    if defense_territory.troops == 0 { wins += 1.0; }
+                    else if attack_territory.troops == 0 { wins += 0.0; }
+                    else { wins += matrix[(defense_territory.troops-1) as usize][(attack_territory.troops-1) as usize]; }
+                }
+
+                matrix[i][j] = wins/(simulations as f32);
+            }
         }
 
         return matrix;
