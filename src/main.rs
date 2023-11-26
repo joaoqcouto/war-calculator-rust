@@ -1,15 +1,14 @@
 use std::io;
-
 use crate::war::Territory;
 mod war;
 
-fn main() {
-    println!("Calculador de ataques de War");
-    println!("Simule uma grande quantidade de ataques de War e avalie as estatísticas de sucesso\n");
+fn individual_simulation() {
+    println!("== SIMULAÇÃO PONTUAL ==");
+    println!("Simule ataques para uma determinada quantidade de tropas atacantes e defensoras");
+    let mut input_line = String::new();
 
     // getting attacking troops
     println!("Quantidade de tropas no território atacante: ");
-    let mut input_line = String::new();
     io::stdin()
         .read_line(&mut input_line)
         .expect("Erro ao ler a linha");
@@ -43,7 +42,80 @@ fn main() {
     let nsimulations: i32 = input_line.trim().parse().expect("Erro: entrada não é número inteiro");
     input_line.clear();
 
-    let result: f32 = attack_territory.simulate_attacks(&mut defense_territory, loss_threshold, nsimulations);
+    println!("Simulando ataques...");
+    let (win_rate, avg_friendlies_left_success, avg_enemies_left_fail) = attack_territory.simulate_attacks(&mut defense_territory, loss_threshold, nsimulations);
 
-    println!("Porcentagem de sucessos = {number:.2}%",number=result*100.0);
+    println!("\nRESULTADOS");
+    println!("Porcentagem de vitórias = {number:.2}%",number=win_rate*100.0);
+    println!("Média de aliados restantes em vitórias = {number:.2}",number=avg_friendlies_left_success);
+    println!("Média de inimigos restantes em derrotas = {number:.2}",number=avg_enemies_left_fail);
+}
+
+fn matrix_generator() {
+    println!("== GERAÇÃO DE TABELA ==");
+    println!("Gere uma tabela de probabilidades de sucesso de determinado tamanho");
+    let mut input_line = String::new();
+
+    // getting table size
+    println!("Tamanho da tabela: ");
+    io::stdin()
+        .read_line(&mut input_line)
+        .expect("Erro ao ler a linha");
+    let table_size: i32 = input_line.trim().parse().expect("Erro: entrada não é número inteiro");
+    input_line.clear();
+
+    // getting number of simulations
+    println!("\nNúmero de rodadas de simulação (por item da tabela): ");
+    io::stdin()
+        .read_line(&mut input_line)
+        .expect("Erro ao ler a linha");
+    let nsimulations: i32 = input_line.trim().parse().expect("Erro: entrada não é número inteiro");
+    input_line.clear();
+
+    println!("Total de rodadas de simulação = {}",nsimulations*table_size*table_size);
+    println!("Gerando tabela...");
+    let matrix: Vec<Vec<f32>> = Territory::gen_matrix(table_size as usize, nsimulations);
+
+    // printing table heading
+    print!("\n      ");
+    for atk in 0..matrix.len() {
+        print!("ATK={number:>2}    ",number=atk+1);
+    }
+    print!("\n");
+
+    for def in 0..matrix.len() {
+        print!("DEF={number:>2}",number=def+1);
+        for val in matrix[def].iter() {
+            print!("{number:>6}    ",number=val);
+        }
+        print!("\n");
+    }
+}
+
+fn main() {
+    println!("Calculador de ataques de War");
+    println!("Simule ataques de War e avalie as estatísticas de sucesso\n");
+    let mut input_line = String::new();
+
+    loop {
+        println!("Modos de simulação:");
+        println!("  0 = exit");
+        println!("  1 = Simulação pontual");
+        println!("  2 = Tabela de probabilidades");
+        println!("\nEscolha um modo:");
+
+        io::stdin()
+            .read_line(&mut input_line)
+            .expect("Erro ao ler a linha");
+        let mode: i32 = input_line.trim().parse().expect("Erro: entrada não é número inteiro");
+        input_line.clear();
+
+        match mode{
+            0=>break,
+            1=>individual_simulation(),
+            2=>matrix_generator(),
+            _=>println!("WIP")
+        }
+        println!("\n== == == ==\n");
+    }
 }
