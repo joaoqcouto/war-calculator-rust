@@ -72,7 +72,7 @@ impl Territory {
     }
 
     /*
-        single attack simulation function:
+        single attack function:
         - attacked (attacked territory)
         - threshold (attack until how many troops are left)
 
@@ -96,5 +96,33 @@ impl Territory {
         
         attacked.troops = 0;
         return true;
+    }
+
+    /*
+        attack simulator function:
+        - attacked (attacked territory)
+        - threshold (attack until how many troops are left)
+        - simulations (number of simulations made)
+
+        > mutates structures during each round, but recovers original values
+        > returns percentage of successful attacks
+    */
+    pub fn simulate_attacks(&mut self, attacked: &mut Territory, threshold: i32, simulations: i32) -> f32 {
+        let mut success_ratio: f32 = 0.0;
+        println!("Simulando ataques...");
+        for _ in 0..simulations {
+            let atk_troops: i32 = self.troops;
+            let def_troops: i32 = attacked.troops;
+
+            // simulating attack
+            let result: bool = self.attack(attacked, threshold);
+
+            if result { success_ratio += 1.0; }
+
+            // resetting troops
+            self.troops = atk_troops;
+            attacked.troops = def_troops;
+        }
+        return success_ratio/(simulations as f32);
     }
 }

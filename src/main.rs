@@ -35,13 +35,15 @@ fn main() {
     let mut attack_territory: Territory = Territory::new(atk_troops);
     let mut defense_territory: Territory = Territory::new(def_troops);
 
-    let result: bool = attack_territory.attack(&mut defense_territory, loss_threshold);
+    // getting number of simulations
+    println!("\nNúmero de rodadas de simulação: ");
+    io::stdin()
+        .read_line(&mut input_line)
+        .expect("Erro ao ler a linha");
+    let nsimulations: i32 = input_line.trim().parse().expect("Erro: entrada não é número inteiro");
+    input_line.clear();
 
-    if result {
-        println!("Ataque foi um sucesso");
-    } else {
-        println!("Ataque foi um fracasso");
-    }
-    println!("Tropas restantes no ataque = {}", attack_territory.troops);
-    println!("Tropas restantes na defesa = {}", defense_territory.troops);
+    let result: f32 = attack_territory.simulate_attacks(&mut defense_territory, loss_threshold, nsimulations);
+
+    println!("Porcentagem de sucessos = {number:.2}%",number=result*100.0);
 }
